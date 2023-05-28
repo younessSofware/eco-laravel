@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -28,23 +30,28 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request)
     {
-        $request->authenticate();
-
-        $request->session()->regenerate();
-
-          $notification = array(
-            'message' => 'Login Successfully',
-            'alert-type' => 'success'
-        );
-
-        $url = '';
-        if ($request->user()->role === 'admin') {
-            $url = 'admin/dashboard';
-        } elseif ($request->user()->role === 'vendor') {
-            $url = 'vendor/dashboard';
-        } elseif ($request->user()->role === 'user') {
-            $url = '/dashboard';
+        $user = User::where('email', $request->email)->first();
+        if(Hash::check($request['password'], $user->password )){
+            $request->authenticate();
+            $request->session()->regenerate();
+            $notification = array(
+                'message' => 'Login Successfully',
+                'alert-type' => 'success'
+            );
+            $url = '';
+    
+            if ($user->role === 'admin') {
+                $url = 'admin/dashboard';
+            } elseif ($user->role === 'vendor') {
+                $url = 'vendor/dashboard';
+            } elseif ($user->role === 'user') {
+                $url = '/dashboard';
+            }
+        }else{
+            $request->authenticate();
         }
+        
+
 
         return redirect()->intended($url)->with($notification);
     }
